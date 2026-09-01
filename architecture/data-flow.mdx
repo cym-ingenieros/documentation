@@ -1,0 +1,39 @@
+---
+title: "Flujo de datos del chat IA al pedido en Dynamics 365"
+sidebarTitle: "Flujo de Datos"
+description: "Ruta que siguen los datos del prospecto en CYM Ingenieros desde el chat IA hasta el lead, la cuenta y el pedido en Dynamics 365."
+---
+
+Los datos del prospecto viajan desde la landing hacia Groq, luego a PostgreSQL y finalmente a Dynamics 365 en un flujo orquestado por el backend NestJS.
+
+## Flujo comercial completo
+
+<Steps>
+  <Step title="Interacción en la landing">
+    El visitante conversa con el widget de chat IA en la landing Angular. Cada mensaje se envía a `POST /ia/chat` junto con el `context` acumulado y las últimas interacciones.
+  </Step>
+  <Step title="Extracción y validación con Groq">
+    `IaService.chat` invoca `generateObject` del Vercel AI SDK con `@ai-sdk/groq`. El modelo devuelve un objeto tipado con los 8 campos comerciales, marca `missingFields` e `invalidFields`, y sugiere `nextQuestion`. El backend normaliza email, RUC (11 dígitos), teléfono y `contactChannel` (`email` o `whatsapp`).
+  </Step>
+  <Step title="Cierre del flujo IA">
+    Cuando todos los campos son válidos, `status` pasa a `completo` y `assistantMessage` indica que se derivará con un vendedor.
+  </Step>
+  <Step title="Registro en Dynamics 365">
+    La landing envía los datos a `POST /dynamics/sales-flow`. `DynamicsService` obtiene un token OAuth client credentials contra Microsoft Entra, hace `GET/PATCH/POST` sobre `/leads` en Dataverse, crea o actualiza el `account/contact`, y finalmente crea la orden con líneas de detalle.
+  </Step>
+  <Step title="Generación de PDF">
+    El pedido se convierte en PDF con `OrderPdfService`, aplicando IGV al 18 % y adjuntando los assets del módulo `dynamics/assets`. El PDF se puede descargar por payload (`POST /dynamics/download-order`) o por ID (`GET /dynamics/download-order/:orderId`).
+  </Step>
+</Steps>
+
+## Flujo del catálogo Microsoft
+
+1. La landing solicita `GET /landing-products` filtrando por `provider=microsoft` para pintar la grilla.
+2. Al abrir un producto, llama a `GET /microsoft-products?landingProductSlugName=...` para obtener SKUs con precio vigente.
+3. `MicrosoftProductsService` combina `microsoft_product_sku` con la fila `microsoft_product_price` marcada `is_current = true`.
+
+## Flujo de e-books
+
+1. Un usuario sube un PDF desde una vista administrativa: `POST /onedrive/upload-ebook` (multipart).
+2. `OnedriveService` autentica contra Microsoft Graph y guarda el archivo en `cymingenieros/ebooks/<archivo>`.
+3. La landing pide `GET /onedrive/download-ebook/:fileName` para obtener un enlace de descarga directo.

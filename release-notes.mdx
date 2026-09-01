@@ -1,0 +1,37 @@
+---
+title: "Notas de versión de la plataforma CYM Ingenieros"
+sidebarTitle: "Notas de Versión"
+description: "Historial de versiones y cambios de la plataforma CYM Ingenieros (landing Angular 20 y backend NestJS 11)."
+---
+
+Esta página consolida los cambios significativos de la plataforma. Los repositorios individuales llevan su versionado en `package.json`.
+
+## Versiones actuales
+
+| Repositorio | Versión declarada |
+| --- | --- |
+| `cym-ingenieros/backend` | `1.0.0` |
+| `cym-ingenieros/landing` | `0.0.0` |
+
+## Estado inicial documentado
+
+Estas capacidades ya están implementadas en el código:
+
+<Update label="Primera versión documentada" description="Estado actual de la plataforma">
+  - Landing Angular 20 con SSR y despliegue en Vercel.
+  - Rutas públicas de productos Microsoft (Azure Cloud, Copilot, Microsoft 365 Business/Enterprise/Firstline, Exchange Online, Teams Essentials, Office 365 Enterprise, migración, correo híbrido) más Drata, Fortinet y ManageEngine.
+  - Módulo `IA` con Groq (`openai/gpt-oss-20b`) y validación estructurada con Zod.
+  - Módulo `Dynamics` con creación y upsert de leads, flujo de ventas, creación de pedidos y descarga de PDF.
+  - Módulo `OneDrive` con subida y descarga de e-books en PDF vía Microsoft Graph.
+  - Módulos `LandingProducts` y `MicrosoftProducts` con esquema PostgreSQL para catálogo y precios por segmento y plan de facturación.
+  - Documentación Swagger expuesta por el backend y cliente tipado generado hacia la landing.
+</Update>
+
+## Cómo registrar cambios
+
+Al liberar una nueva versión:
+
+1. Actualiza el `version` en el `package.json` correspondiente.
+2. Agrega un bloque `<Update>` en esta página con la fecha o etiqueta de release.
+3. Enumera los cambios agrupados por área: `Landing`, `Backend`, `Base de datos`, `Integraciones`.
+4. Marca los cambios rompedores con `<Warning>`.

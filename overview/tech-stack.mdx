@@ -1,0 +1,37 @@
+---
+title: "Stack tecnológico de la plataforma CYM Ingenieros"
+sidebarTitle: "Stack Tecnológico"
+description: "Tecnologías, frameworks y librerías usadas en la landing Angular 20 y el backend NestJS 11 de CYM Ingenieros."
+---
+
+La plataforma se compone de dos repositorios independientes con stacks modernos alineados a Node.js 20 y TypeScript 5.
+
+## Frontend (`landing`)
+
+| Área | Tecnología |
+| --- | --- |
+| Framework | Angular 20.3 con SSR (`@angular/ssr`) y control flow basado en signals |
+| Estilos | Tailwind CSS 4, Flowbite 3, Material Symbols, Font Awesome 7 |
+| i18n | `@ngx-translate/core` 17 con loader HTTP y archivos por módulo |
+| Build/serve | Angular CLI, `@ngx-env/builder` para variables `NG_APP_*`, Express 5 para SSR |
+| Deploy | Vercel (framework `angular`, output `dist/cymingenieros/browser`) |
+
+## Backend (`backend`)
+
+| Área | Tecnología |
+| --- | --- |
+| Framework | NestJS 11 (`@nestjs/common`, `@nestjs/core`, `@nestjs/platform-express`) |
+| Configuración | `@nestjs/config` \+ `dotenv` |
+| Documentación | `@nestjs/swagger` 11 \+ `swagger-typescript-api` para generar tipos hacia la landing |
+| HTTP | `@nestjs/axios` sobre `axios` |
+| Validación | `class-validator`, `class-transformer`, `zod` |
+| IA | `ai` (Vercel AI SDK) \+ `@ai-sdk/groq` |
+| Base de datos | PostgreSQL vía `pg` con Drizzle ORM 0.44 y Drizzle Kit |
+| Pruebas | Jest 29 \+ Supertest |
+
+## Requisitos de runtime
+
+- **Node.js** ≥ 20 (backend declara `engines.node >=20.0.0` y `engines.npm >=10.0.0`).
+- **PostgreSQL** con acceso administrativo para crear la base de datos.
+- **Tenant Microsoft Entra** con permisos para Dataverse y Microsoft Graph.
+- **Cuenta Groq** con API key para el modelo por defecto `openai/gpt-oss-20b`.

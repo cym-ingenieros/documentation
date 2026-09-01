@@ -1,0 +1,75 @@
+---
+title: "Despliegue del backend NestJS y la landing Angular en Vercel"
+sidebarTitle: "Despliegue"
+description: "Guía de despliegue para el backend NestJS y la landing Angular de CYM Ingenieros, incluyendo la configuración de Vercel."
+---
+
+La landing se despliega en Vercel con la configuración incluida en el repositorio. El backend se compila con `nest build` y se ejecuta como cualquier proceso Node.
+
+## Landing en Vercel
+
+`vercel.json`:
+
+```json
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/cymingenieros/browser",
+  "devCommand": "npm run start",
+  "installCommand": "npm install",
+  "framework": "angular",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.csr.html" }
+  ]
+}
+```
+
+Pasos:
+
+<Steps>
+  <Step title="Conectar el repo en Vercel">
+    Importa `cym-ingenieros/landing` en Vercel y selecciona el framework Angular.
+  </Step>
+  <Step title="Configurar variables NG_APP_*">
+    Añade `NG_APP_BASE_URL` (URL pública del backend) en Project Settings → Environment Variables.
+  </Step>
+  <Step title="Deploy">
+    Cada push a la rama por defecto dispara un build. Vercel ejecuta `npm run build`, que además copia `index.csr.html` a `index.html`.
+  </Step>
+</Steps>
+
+<Note>
+  El paso `cp dist/cymingenieros/browser/index.csr.html dist/cymingenieros/browser/index.html` está incluido en el script `build` del `package.json` de la landing para garantizar un `index.html` estable.
+</Note>
+
+## Backend
+
+El backend no incluye un `Dockerfile` ni configuración específica de nube en el repositorio. Se ejecuta como proceso Node en cualquier host compatible.
+
+### Build
+
+```bash
+npm install --omit=dev
+npm run build
+```
+
+El artefacto queda en `dist/`.
+
+### Ejecución en producción
+
+```bash
+npm run start:prod
+```
+
+Este comando ejecuta `node dist/main`. Antes de arrancar, aplica las migraciones pendientes:
+
+```bash
+npm run db:migrate
+```
+
+### Consideraciones
+
+- Configura `PROD=true` para que Postgres use SSL.
+- Expón el puerto definido por `PORT`.
+- El backend habilita CORS globalmente (`app.enableCors()` en `main.ts`), suficiente para exponer la API pública a la landing.
+- Renueva `MICROSOFT_ENTRA_CLIENT_SECRET` antes de su fecha de expiración; el backend no persiste el token OAuth y lo pide en cada operación.

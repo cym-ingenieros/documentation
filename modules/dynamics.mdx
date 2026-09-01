@@ -1,0 +1,55 @@
+---
+title: "Módulo Dynamics 365: leads, cuentas y pedidos"
+sidebarTitle: "Dynamics"
+description: "El módulo Dynamics del backend integra con Dataverse Web API para crear leads, cuentas, contactos, órdenes y PDFs de pedido."
+---
+
+El módulo `Dynamics` orquesta la relación comercial con Microsoft Dynamics 365: crea o actualiza leads, cuentas y contactos en Dataverse, genera órdenes con líneas de detalle y produce el PDF final del pedido.
+
+## Ubicación
+
+- Backend: `src/modules/dynamics/`
+- Controlador: `dynamics.controller.ts`
+- Servicio principal: `dynamics.service.ts`
+- PDF: `services/order-pdf.service.ts`
+- Assets del PDF: `assets/` (logos, plantillas)
+
+## Endpoints
+
+| Método | Ruta | Propósito |
+| --- | --- | --- |
+| `POST` | `/dynamics/create-lead` | Crea o actualiza un lead por email en `/leads`. |
+| `POST` | `/dynamics/sales-flow` | Flujo completo: lead, cuenta o contacto y pedido en una sola llamada. |
+| `POST` | `/dynamics/create-order` | Crea un pedido en Dynamics con líneas de detalle. |
+| `POST` | `/dynamics/download-order` | Genera el PDF del pedido a partir de un payload. |
+| `GET` | `/dynamics/download-order/:orderId` | Descarga el PDF de un pedido existente por ID. |
+
+Todos los endpoints están marcados con `@ApiTags('Dynamics')` y `@ApiBearerAuth()` para Swagger.
+
+## Autenticación con Microsoft Entra
+
+`DynamicsService.getAccessToken` solicita un token OAuth `client_credentials` contra `https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token` con scope `${DYNAMICS_ORG_URL}/.default`. Variables requeridas:
+
+- `MICROSOFT_ENTRA_TENANT_ID`
+- `MICROSOFT_ENTRA_CLIENT_ID`
+- `MICROSOFT_ENTRA_CLIENT_SECRET`
+- `DYNAMICS_ORG_URL`
+
+## Reglas de negocio
+
+- **Upsert de lead por email**: si existe un lead con el mismo `emailaddress1`, se hace `PATCH`; si no, `POST` con `subject: 'Lead desde Landing Page'`.
+- **IGV fijo al 18 %** aplicado en la generación del PDF (`igvRate = 0.18`).
+- **Valores OData** escapados con `escapeODataValue` para evitar inyección en filtros `$filter`.
+
+## PDF de pedido
+
+`OrderPdfService` recibe `OrderPdfData` y produce `{ fileName, buffer }`. La respuesta HTTP se emite con:
+
+```ts
+response.set({
+  'Content-Type': 'application/pdf',
+  'Content-Disposition': `attachment; filename="${pdf.fileName}"`,
+  'Content-Length': pdf.buffer.length,
+});
+response.end(pdf.buffer);
+```

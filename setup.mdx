@@ -1,0 +1,110 @@
+---
+title: "Instalación, variables de entorno y comandos de desarrollo"
+sidebarTitle: "Configuración"
+description: "Instala y configura el backend NestJS y la landing Angular de CYM Ingenieros: dependencias, variables de entorno y comandos npm."
+---
+
+Cada repositorio se instala y ejecuta de forma independiente. El backend requiere PostgreSQL y credenciales Microsoft; la landing solo necesita apuntar a la URL del backend.
+
+## Backend
+
+### Prerrequisitos
+
+- Node.js ≥ 20 y npm ≥ 10.
+- PostgreSQL accesible y credenciales con permiso para crear la base de datos.
+- Tenant Microsoft Entra con app registrada y permisos a Dataverse y Microsoft Graph.
+- API key de Groq.
+
+### Instalación
+
+<Steps>
+  <Step title="Instalar dependencias">
+    ```bash
+    npm install
+    ```
+  </Step>
+  <Step title="Crear archivo .env">
+    Copia `.env.example` a `.env` y completa los valores.
+  </Step>
+  <Step title="Crear la base de datos">
+    ```bash
+    npm run db:create
+    ```
+  </Step>
+  <Step title="Iniciar en modo desarrollo">
+    ```bash
+    npm run start:dev
+    ```
+
+    El servidor escucha en `process.env.PORT` o `3000` por defecto.
+  </Step>
+</Steps>
+
+### Variables de entorno
+
+| Variable | Descripción |
+| --- | --- |
+| `PORT` | Puerto HTTP del backend (por defecto `3000`). |
+| `PROD` | `true` activa SSL en la conexión Postgres. |
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Credenciales PostgreSQL. |
+| `MICROSOFT_ENTRA_TENANT_ID` | Tenant ID del app registration. |
+| `MICROSOFT_ENTRA_CLIENT_ID` | Client ID del app registration. |
+| `MICROSOFT_ENTRA_CLIENT_SECRET` | Secret del app registration. |
+| `DYNAMICS_ORG_URL` | URL raíz de Dataverse (por ejemplo `https://org.crm.dynamics.com`). |
+| `ONEDRIVE_DRIVE_ID` | Drive ID de OneDrive (opcional si se usa `ONEDRIVE_USER_ID`). |
+| `ONEDRIVE_USER_ID` | User ID de OneDrive (opcional si se usa `ONEDRIVE_DRIVE_ID`). |
+| `GROQ_API_KEY` | API key de Groq. |
+| `GROQ_MODEL` | Modelo Groq (por defecto `openai/gpt-oss-20b`). |
+
+## Landing
+
+### Prerrequisitos
+
+- Node.js ≥ 20.
+- URL pública del backend.
+
+### Instalación
+
+<Steps>
+  <Step title="Instalar dependencias">
+    ```bash
+    npm install
+    ```
+  </Step>
+  <Step title="Configurar variables NG_APP_*">
+    Crea un archivo `.env` en la raíz con:
+
+    ```bash
+    NG_APP_BASE_URL=https://api.tudominio.com
+    ```
+  </Step>
+  <Step title="Levantar el servidor de desarrollo">
+    ```bash
+    npm start
+    ```
+
+    Abre `http://localhost:4200/`.
+  </Step>
+</Steps>
+
+### Scripts útiles
+
+| Comando | Propósito |
+| --- | --- |
+| `npm start` | Servidor Angular con recarga. |
+| `npm run build` | Build de producción (`dist/cymingenieros/browser`). |
+| `npm run watch` | Build en modo desarrollo con `--watch`. |
+| `npm run i18n:update` | Actualiza los archivos de traducción en `public/i18n/`. |
+| `npm test` | Ejecuta pruebas unitarias con Karma \+ Jasmine. |
+| `npm run serve:ssr:cymingenieros` | Sirve el bundle SSR generado. |
+
+### Regenerar tipos desde Swagger
+
+Cuando cambien los endpoints del backend, regenera el cliente en la landing:
+
+```bash
+# En el backend
+npm run generate:types
+```
+
+Este comando corre `scripts/generate-api-types.ts` y actualiza `landing/src/api/backend.api.ts`.

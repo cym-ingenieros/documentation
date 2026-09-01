@@ -1,0 +1,40 @@
+---
+title: "Logs del backend NestJS: dónde ver qué falla y cómo"
+sidebarTitle: "Logs"
+description: "Cómo lee logs el backend CYM Ingenieros: Logger de NestJS, serialización de errores y trazas de Dataverse y Groq."
+---
+
+El backend usa el `Logger` estándar de NestJS. Los mensajes se escriben a `stdout` y son capturados por el entorno de ejecución (Vercel, PM2, systemd, contenedor).
+
+## Convenciones
+
+- Cada servicio crea su propio logger: `private readonly logger = new Logger(DynamicsService.name)`.
+- Errores externos se registran con `this.logger.error(mensaje, detalle)`.
+- Las llamadas a Axios usan `isAxiosError(error)` para capturar `error.response?.data`.
+
+## Ejemplos por módulo
+
+### IA
+
+```ts
+this.logger.debug(`Procesando chat IA con modelo "${model}" y ${n} mensajes de contexto.`);
+this.logger.debug(`Respuesta IA procesada con status "${status}".`);
+this.logger.error('Error al procesar el chat de IA.', this.serializeError(error));
+```
+
+`serializeError` extrae `name`, `message`, `stack`, `cause` y detalles adicionales (`statusCode`, `status`, `responseBody`, `responseHeaders`, `text`, `value`).
+
+### Dynamics
+
+- `Error al obtener el access token de Microsoft Entra` con el `response.data` de la petición OAuth.
+- `Error al crear Lead en Dynamics` con la respuesta de Dataverse.
+
+## Nivel de log
+
+Se puede ajustar en `main.ts` pasando `logger: ['log', 'error', 'warn', 'debug', 'verbose']` a `NestFactory.create`. Actualmente se usa el nivel por defecto de NestJS.
+
+## Recomendaciones
+
+- En producción, redirigir `stdout` y `stderr` a un colector centralizado (Datadog, Grafana Loki, CloudWatch).
+- Habilitar el nivel `debug` solo temporalmente al investigar problemas del chat IA para ver el modelo y el conteo de mensajes.
+- Nunca loguear el `CLIENT_SECRET` ni el token OAuth.

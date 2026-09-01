@@ -1,0 +1,51 @@
+---
+title: "Módulos de productos y OneDrive del backend CYM Ingenieros"
+sidebarTitle: "Productos y OneDrive"
+description: "Los módulos LandingProducts, MicrosoftProducts y OneDrive exponen el catálogo público y gestionan e-books en OneDrive vía Microsoft Graph."
+---
+
+Tres módulos completan las capacidades de contenido del backend: catálogo público de la landing, catálogo de SKUs Microsoft con precios y almacenamiento de e-books en OneDrive.
+
+## LandingProducts
+
+Expone los productos publicados en la landing agrupados por proveedor.
+
+- Backend: `src/modules/landing-products/`
+- Repositorio: `src/repositories/landing-product.repository.ts`
+- Endpoints:
+  - `GET /landing-products?provider=microsoft` — Lista filtrable por `provider`, `slugName`, `isActive`.
+  - `GET /landing-products/:slugName` — Detalle por slug.
+
+Cada resultado incluye `provider`, `slugName`, `displayName`, `routePath`, `labelKey`, `heroImagePath`, `sortOrder` e `isActive`. Los proveedores válidos son `microsoft`, `drata`, `fortinet` y `manage_engine`.
+
+## MicrosoftProducts
+
+Devuelve los SKUs Microsoft con su precio vigente.
+
+- Backend: `src/modules/microsoft-products/`
+- Repositorio: `src/repositories/microsoft-product.repository.ts`
+- Endpoints:
+  - `GET /microsoft-products` — Filtros por `landingProductSlugName`, `segment`, `billingPlan`, `isActive`.
+  - `GET /microsoft-products/:slugName` — Detalle por slug del SKU.
+
+`MicrosoftProductsService` combina la fila del SKU con la fila de `microsoft_product_price` marcada `is_current = true` para retornar `currentPrice` con `partnerUnitPriceNoTax`, `suggestedUnitPrice`, `partnerTotalNoTax`, `quantity`, `priceUnit`, `effectiveFrom`, `effectiveTo`, `sourceSheet` y `sourceFileName`.
+
+### Enums soportados
+
+- **Segmento**: `commercial`, `charity`, `education`, `government`, `nonprofit`, `unknown`.
+- **Plan de facturación**: `monthly`, `annual`, `triennial`, `one_time`, `unknown`.
+
+## OneDrive
+
+Gestiona la subida y descarga de e-books en PDF.
+
+- Backend: `src/modules/onedrive/`
+- Endpoints:
+  - `POST /onedrive/upload-ebook` — `multipart/form-data` con campo `file`. Solo acepta `application/pdf`.
+  - `GET /onedrive/download-ebook/:fileName` — Devuelve un enlace de descarga directo.
+
+Los archivos se guardan en la ruta `cymingenieros/ebooks/<archivo>` dentro del drive configurado. El servicio autentica con Microsoft Entra (scope `https://graph.microsoft.com/.default`) y usa `ONEDRIVE_DRIVE_ID` o, en su defecto, `ONEDRIVE_USER_ID` para construir la URL de Graph.
+
+<Warning>
+  Si no se configura `ONEDRIVE_DRIVE_ID` ni `ONEDRIVE_USER_ID`, la subida falla con `InternalServerErrorException`.
+</Warning>

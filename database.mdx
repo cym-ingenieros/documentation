@@ -1,0 +1,113 @@
+---
+title: "Base de datos PostgreSQL con Drizzle ORM en CYM Ingenieros"
+sidebarTitle: "Base de Datos"
+description: "Esquema PostgreSQL gestionado con Drizzle ORM: tablas lead, landing_product, microsoft_product_sku y microsoft_product_price."
+---
+
+La persistencia usa PostgreSQL con Drizzle ORM. Las tablas se definen en `src/db/tables/` y las migraciones se emiten con Drizzle Kit.
+
+## Configuración
+
+Archivo `drizzle.config.ts`:
+
+```ts
+export default {
+  schema: './src/db/tables/*.table.ts',
+  out: './drizzle',
+  dialect: 'postgresql',
+  dbCredentials: dbConfig,
+} satisfies Config;
+```
+
+`dbConfig` en `src/db/config.db.ts` lee variables de entorno:
+
+```ts
+{
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT ?? '5432', 10),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: process.env.PROD === 'true',
+}
+```
+
+La conexión (`src/db/connection.db.ts`) usa `Pool` de `pg` y expone `database` como cliente Drizzle con el schema completo.
+
+## Tablas
+
+### `lead`
+
+Almacena leads capturados desde el flujo comercial.
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `id` | serial | PK |
+| `created_at` | timestamp | `defaultNow` |
+| `updated_at` | timestamp | `defaultNow` |
+| `deleted_at` | timestamp | Soft delete |
+| `first_name` | varchar(120) | Obligatorio |
+| `last_name` | varchar(120) | Obligatorio |
+| `email` | varchar(255) | Indexado |
+| `phone` | varchar(50) | Opcional |
+| `company` | varchar(200) | Opcional |
+| `dynamics_lead_id` | varchar(120) | ID retornado por Dataverse |
+
+Índices: `lead_email_idx`, `lead_created_at_idx`.
+
+### `landing_product`
+
+Productos publicados en la landing.
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `provider` | enum | `microsoft`, `drata`, `fortinet`, `manage_engine` |
+| `slug_name` | varchar(120) | Único |
+| `display_name` | varchar(200) | Título mostrado |
+| `route_path` | varchar(255) | Único |
+| `label_key` | varchar(255) | Clave i18n |
+| `hero_image_path` | varchar(255) | Ruta a la imagen destacada |
+| `sort_order` | integer | Orden de aparición |
+| `is_active` | boolean | Publicado |
+
+### `microsoft_product_sku`
+
+SKUs Microsoft asociados a un `landing_product`.
+
+Campos clave: `landing_product_id` (FK), `product_id`, `part_number`, `sku_title`, `slug_name`, `segment` (enum), `term_duration`, `billing_plan` (enum), `source_sheet`, `notes`, `sort_order`, `is_active`.
+
+Índice único compuesto: `(product_id, sku_title, segment, term_duration, billing_plan)`.
+
+### `microsoft_product_price`
+
+Historia de precios por SKU.
+
+| Columna | Tipo | Notas |
+| --- | --- | --- |
+| `microsoft_product_sku_id` | integer | FK a `microsoft_product_sku` |
+| `currency` | varchar(3) | Por defecto `USD` |
+| `partner_unit_price_no_tax` | numeric(12,2) | Precio unitario partner sin IGV |
+| `suggested_unit_price` | numeric(12,2) | Precio sugerido |
+| `partner_total_no_tax` | numeric(12,2) | Total sin IGV |
+| `quantity` | integer | Cantidad de referencia |
+| `price_unit` | varchar(40) | Unidad de facturación |
+| `effective_from` | timestamp | Inicio de vigencia |
+| `effective_to` | timestamp | Fin de vigencia (nullable) |
+| `is_current` | boolean | Marca la fila activa por SKU \+ moneda |
+
+Índice único: `(microsoft_product_sku_id, currency, effective_from)`.
+
+## Comandos Drizzle
+
+Definidos en `backend/package.json`:
+
+| Comando | Propósito |
+| --- | --- |
+| `npm run db:create` | Crea la base de datos y aplica el schema inicial. |
+| `npm run db:migrate` | Aplica migraciones pendientes. |
+| `npm run db:command` | Ejecuta comandos ad-hoc de mantenimiento. |
+| `npm run db:seed` | Carga datos semilla. |
+| `npm run db:reset` | Vacía la base de datos. |
+| `npm run db:backup` | Genera un backup. |
+| `npm run db:restore` | Restaura un backup. |
+| `npm run db:studio` | Abre Drizzle Studio. |

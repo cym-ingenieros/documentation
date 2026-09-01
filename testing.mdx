@@ -1,0 +1,49 @@
+---
+title: "Pruebas unitarias y e2e con Jest y Karma en CYM Ingenieros"
+sidebarTitle: "Pruebas"
+description: "Herramientas y comandos de pruebas del backend NestJS (Jest, Supertest) y de la landing Angular (Karma, Jasmine)."
+---
+
+Ambos repositorios usan las herramientas de pruebas por defecto de sus frameworks. Ni la landing ni el backend incluyen suites de pruebas específicas del negocio en este momento; los comandos permiten integrarlas sin cambios de configuración.
+
+## Backend
+
+Framework de pruebas: **Jest 29** con `ts-jest`. Configuración en `package.json`:
+
+```json
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "src",
+  "testRegex": ".*\\.spec\\.ts$",
+  "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+  "collectCoverageFrom": ["**/*.(t|j)s"],
+  "coverageDirectory": "../coverage",
+  "testEnvironment": "node"
+}
+```
+
+| Comando | Propósito |
+| --- | --- |
+| `npm test` | Ejecuta todas las suites `*.spec.ts`. |
+| `npm run test:watch` | Modo watch. |
+| `npm run test:cov` | Reporte de cobertura en `coverage/`. |
+| `npm run test:debug` | Corre Jest con `--inspect-brk`. |
+| `npm run test:e2e` | Pruebas end-to-end con `test/jest-e2e.json` y Supertest. |
+
+## Landing
+
+Framework de pruebas: **Karma \+ Jasmine** (default de Angular CLI).
+
+| Comando | Propósito |
+| --- | --- |
+| `npm test` | Corre Karma con Jasmine. |
+| `ng e2e` | Requiere instalar previamente un framework e2e (no viene por defecto). |
+
+Configuración relevante:
+
+- `tsconfig.spec.json` compila los archivos de test.
+- `karma-jasmine`, `karma-chrome-launcher` y `karma-coverage` ya están declarados como devDependencies.
+
+<Tip>
+  Al añadir nuevas suites, sigue las reglas de `rules.md` de la landing: signals para estado local, control flow con `@if`/`@for` y evitar sintaxis antigua (`*ngIf`, `*ngFor`).
+</Tip>

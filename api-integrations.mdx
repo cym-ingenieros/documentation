@@ -1,0 +1,74 @@
+---
+title: "API REST del backend e integraciones con Dynamics, Graph y Groq"
+sidebarTitle: "API e Integraciones"
+description: "Referencia de los endpoints REST del backend CYM Ingenieros y de los servicios externos que consume: Dataverse, Microsoft Graph y Groq."
+---
+
+El backend expone una API REST documentada con Swagger e integra tres proveedores externos: Dataverse (Dynamics 365), Microsoft Graph (OneDrive) y Groq (modelos de lenguaje).
+
+## Endpoints REST
+
+| Módulo | Método | Ruta |
+| --- | --- | --- |
+| Dynamics | `POST` | `/dynamics/create-lead` |
+| Dynamics | `POST` | `/dynamics/sales-flow` |
+| Dynamics | `POST` | `/dynamics/create-order` |
+| Dynamics | `POST` | `/dynamics/download-order` |
+| Dynamics | `GET` | `/dynamics/download-order/:orderId` |
+| IA | `POST` | `/ia/chat` |
+| Landing Products | `GET` | `/landing-products` |
+| Landing Products | `GET` | `/landing-products/:slugName` |
+| Microsoft Products | `GET` | `/microsoft-products` |
+| Microsoft Products | `GET` | `/microsoft-products/:slugName` |
+| OneDrive | `POST` | `/onedrive/upload-ebook` |
+| OneDrive | `GET` | `/onedrive/download-ebook/:fileName` |
+
+## Swagger
+
+`setupSwagger(app)` en `src/core/swagger.core.ts` monta el UI. En desarrollo se accede en `http://localhost:3000/api` (u otra ruta definida en el core). Los DTOs decorados con `@ApiProperty` alimentan la documentación.
+
+## Cliente tipado en la landing
+
+La landing consume el backend con un cliente generado por `swagger-typescript-api`:
+
+- Script: `npm run generate:types` en `backend`, produce `landing/src/api/backend.api.ts`.
+- Servicios wrapper en `landing/src/services/admin/` (`dynamics.service.ts`, `ia.service.ts`, `landing-products.service.ts`, `microsoft-products.service.ts`, `onedrive.service.ts`).
+- Ejemplo de uso desde Angular:
+
+```ts
+async chat(data: ApiBody<'ia', 'chat'>) {
+  return await this.api.ia.chat(data).then((response) => response.data);
+}
+```
+
+## Integraciones externas
+
+### Microsoft Entra ID
+
+Todos los servicios Microsoft comparten el mismo flujo `client_credentials`:
+
+```text
+POST https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token
+```
+
+Con `grant_type=client_credentials`, `client_id`, `client_secret` y `scope` específico:
+
+- Dataverse: `${DYNAMICS_ORG_URL}/.default`
+- Microsoft Graph: `https://graph.microsoft.com/.default`
+
+### Dataverse Web API
+
+- Base: `${DYNAMICS_ORG_URL}/api/data/v9.2`
+- Entidades usadas: `leads`, `accounts`, `contacts`, `salesorders`, `salesorderdetails`.
+- Operaciones: `GET` con `$filter`, `POST` para crear, `PATCH` para actualizar.
+
+### Microsoft Graph
+
+- Base: `https://graph.microsoft.com/v1.0`
+- Rutas: `/drives/{driveId}/root:/cymingenieros/ebooks/{fileName}:/content` o `/users/{userId}/drive/root:/...`.
+
+### Groq
+
+- SDK: `@ai-sdk/groq` con `generateObject` del paquete `ai`.
+- Modelo por defecto: `openai/gpt-oss-20b`.
+- Respuesta forzada a un esquema Zod estricto (`iaLeadSchema`).

@@ -1,0 +1,61 @@
+---
+title: "Módulo IA: chat comercial estructurado con Groq"
+sidebarTitle: "IA"
+description: "El módulo IA usa Groq y Zod para recopilar y validar los datos comerciales del prospecto en el chat de la landing CYM Ingenieros."
+---
+
+El módulo `IA` implementa un chat conversacional que extrae datos comerciales del prospecto y valida su completitud antes de derivarlo con un vendedor.
+
+## Ubicación
+
+- Backend: `src/modules/ia/`
+- Controlador: `ia.controller.ts` (`POST /ia/chat`)
+- Servicio: `ia.service.ts`
+
+## Modelo y proveedor
+
+- SDK: `ai` (Vercel AI SDK) con `@ai-sdk/groq`.
+- Modelo por defecto: `openai/gpt-oss-20b` (configurable con `GROQ_MODEL`).
+- API key: `GROQ_API_KEY` (obligatoria; si falta, el endpoint lanza `InternalServerErrorException`).
+
+## Campos capturados
+
+El esquema Zod `iaLeadSchema` define los datos que el modelo debe extraer:
+
+| Campo | Tipo | Validación |
+| --- | --- | --- |
+| `fullName` | string | Texto no vacío |
+| `phone` | string | Texto no vacío |
+| `email` | string | Formato de correo |
+| `companyName` | string | Texto no vacío |
+| `ruc` | string | 11 dígitos numéricos (RUC peruano) |
+| `licenseQuantity` | number | Entero positivo |
+| `additionalMicrosoftProduct` | string | Texto no vacío |
+| `contactChannel` | enum | `email` o `whatsapp` |
+
+## Contrato de respuesta
+
+```json
+{
+  "status": "completo | incompleto",
+  "data": { "fullName": "...", "phone": "...", "...": "..." },
+  "missingFields": ["email", "ruc"],
+  "invalidFields": [{ "field": "email", "reason": "formato inválido" }],
+  "assistantMessage": "Siguiente pregunta o mensaje de cierre",
+  "nextQuestion": "¿Cuál es tu correo?"
+}
+```
+
+Cuando `status = "completo"`, `assistantMessage` es "Se derivará con un vendedor." y `nextQuestion` es `null`.
+
+## Normalización
+
+`IaService` complementa al LLM con normalización determinista:
+
+- **Email**: lowercase \+ regex `^[^\s@]+@[^\s@]+\.[^\s@]+$`.
+- **RUC**: quita todo lo que no sea dígito y exige longitud 11.
+- **`contactChannel`**: interpreta variantes en el mensaje (`wsp`, `wa`, `wasap`, `guasap`, `correo`, `mail`, `e-mail`, etc.).
+
+## Prompt del sistema
+
+El `systemPrompt` fija las 6 preguntas del flujo y las reglas de fusión con el `currentContext`. El modelo nunca inventa datos: si algo falta, devuelve `null` y lo agrega a `missingFields`. Todas las respuestas son en español.

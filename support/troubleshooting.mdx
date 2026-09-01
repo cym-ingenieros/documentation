@@ -1,0 +1,74 @@
+---
+title: "Troubleshooting: errores comunes del backend e integraciones"
+sidebarTitle: "Troubleshooting"
+description: "Guía de resolución de fallos frecuentes en CYM Ingenieros: autenticación Microsoft, chat IA, base de datos y OneDrive."
+---
+
+Esta guía enumera los errores más comunes observados en el backend y cómo resolverlos.
+
+## Autenticación con Microsoft Entra falla
+
+**Síntoma**: `InternalServerErrorException('Error de autenticación con Dynamics 365')` o `('Error de autenticación con Microsoft Graph API')`.
+
+**Causas probables**:
+
+- `MICROSOFT_ENTRA_TENANT_ID`, `MICROSOFT_ENTRA_CLIENT_ID` o `MICROSOFT_ENTRA_CLIENT_SECRET` vacíos.
+- Secret vencido en el app registration.
+- Falta el permiso Dataverse (`Dynamics CRM user_impersonation` o `.default` con app permissions).
+
+**Solución**:
+
+1. Verifica las variables en tu entorno (`printenv | grep MICROSOFT`).
+2. Renueva el secret desde Azure Portal → App registrations → Certificates & secrets.
+3. Concede consentimiento admin a los permisos de aplicación.
+
+## `GROQ_API_KEY no esta configurado`
+
+**Síntoma**: El endpoint `POST /ia/chat` responde 500 con este mensaje.
+
+**Solución**: Añade `GROQ_API_KEY` al `.env` y reinicia el backend. Verifica en Groq Console que la key esté activa.
+
+## `GET /microsoft-products/:slugName` responde 404
+
+**Síntoma**: `NotFoundException('Microsoft product SKU not found.')`.
+
+**Causas**:
+
+- El slug no existe en `microsoft_product_sku.slug_name`.
+- El SKU tiene `is_active = false` o `deleted_at` no nulo.
+
+**Solución**: consulta la tabla con `npm run db:studio` y confirma el slug. Reactiva el registro o corrige el nombre.
+
+## OneDrive: `Se requiere configurar ONEDRIVE_DRIVE_ID o ONEDRIVE_USER_ID`
+
+**Síntoma**: `InternalServerErrorException` al invocar `POST /onedrive/upload-ebook`.
+
+**Solución**: define una de las dos variables. Si el drive es de un usuario personal, usa `ONEDRIVE_USER_ID`. Si es un drive compartido (SharePoint / grupo), usa `ONEDRIVE_DRIVE_ID`.
+
+## Upload rechaza el archivo
+
+**Síntoma**: `BadRequestException('El archivo debe ser un PDF')`.
+
+**Solución**: envía el archivo con `Content-Type: application/pdf` en la parte multipart. Otros mimetypes se rechazan.
+
+## Conexión a PostgreSQL falla
+
+**Síntoma**: El proceso arranca pero cualquier operación de repositorio falla con errores de conexión.
+
+**Causas**:
+
+- Credenciales `DB_*` incorrectas.
+- Base de datos no creada (`npm run db:create` no se ejecutó).
+- `PROD=true` en un host sin SSL habilitado.
+
+**Solución**: valida la conexión con `psql` usando los mismos valores. Ejecuta `npm run db:migrate` para asegurar el schema.
+
+## El chat IA marca campos como faltantes aunque el usuario los haya dado
+
+**Síntoma**: `missingFields` incluye campos que el usuario ya escribió.
+
+**Causas y solución**:
+
+- Formato inválido: revisa `invalidFields` para ver la razón (ej. RUC con menos de 11 dígitos, email sin `@`).
+- El modelo no interpretó la frase: aumenta el contexto pasando más mensajes en `conversation` (el backend usa los últimos 10 automáticamente).
+- Ajusta el prompt en `IaService.getSystemPrompt` si aparece un patrón recurrente.

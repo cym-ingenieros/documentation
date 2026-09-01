@@ -1,0 +1,31 @@
+---
+title: "Problemas conocidos y limitaciones actuales de la plataforma"
+sidebarTitle: "Problemas Conocidos"
+description: "Limitaciones conocidas de la plataforma CYM Ingenieros en el backend NestJS y en la landing Angular."
+---
+
+Los siguientes puntos son limitaciones o comportamientos conocidos en la versión actual del código.
+
+## Backend
+
+- **Directorios `db/migrations` y `db/commands` vacíos**: no hay migraciones ni comandos ad-hoc versionados. El schema se aplica directamente desde `src/db/tables/*.table.ts` con `npm run db:create`.
+- **Token OAuth no cacheado**: `DynamicsService.getAccessToken` y `OnedriveService.getAccessToken` solicitan un token nuevo en cada operación. Esto añade latencia; considera cachear el token respetando su `expires_in`.
+- **IGV fijo al 18 %**: `DynamicsService.igvRate = 0.18` está hardcodeado. Si cambia la tasa, hay que actualizar el código.
+- **CORS abierto**: `app.enableCors()` permite cualquier origen. Restringe orígenes cuando se defina el dominio final.
+- **Errores genéricos hacia el cliente**: las excepciones se envuelven en `InternalServerErrorException` con mensajes genéricos; el detalle solo aparece en logs.
+
+## Landing
+
+- **Fallback SPA en Vercel**: el rewrite envía todas las rutas a `index.csr.html`. Rutas no existentes muestran la landing en vez de un 404 propio.
+- **Rutas de templates limitadas**: `/templates/*` no incluye variantes para Drata, Fortinet ni ManageEngine.
+- **Redirección de Microsoft por defecto**: al entrar en `/products/microsoft` sin subruta, se redirige a `azure-cloud`.
+- **Sin autenticación en la vista de administración**: los servicios en `services/admin/` son wrappers directos del API público; no hay guardas de autenticación.
+
+## Integraciones
+
+- **Dependencia fuerte de Microsoft Entra**: si Entra o Dataverse están caídos, los flujos de lead y pedido fallan sin fallback.
+- **Groq como único proveedor LLM**: no hay estrategia multi-proveedor; una caída de Groq deja el chat IA sin respuestas.
+
+<Info>
+  Estas notas se derivan del estado actual del código. Se actualizan a medida que se resuelvan.
+</Info>
